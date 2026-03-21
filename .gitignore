@@ -49,3 +49,4 @@ share/python-wheels/
 # OS-specific (Mac/Windows)
 .DS_Store
 Thumbs.db
+GEMINI.md
