@@ -2,6 +2,7 @@
   "topic": "The history of Artificial Intelligence",
   "goal": "Write a comprehensive guide on the evolution of AI from the 1950s to modern LLMs.",
   "language": "English",
+  "clean_on_startup": true,
   "max_iterations": 3,
   "saturation_threshold": 0.85,
   "models": {

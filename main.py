@@ -1,13 +1,32 @@
 import asyncio
+import os
+import shutil
+from pathlib import Path
 from rich.panel import Panel
 from core.config import console, APP_CONFIG
 from core.state import AgentState
+from database.db_manager import clear_session
 from workflow import app
 
 async def main():
     console.print(Panel.fit("[bold green]Starting ARSA LangGraph Orchestrator (Async)[/bold green]", border_style="green"))
     
-    # Load configuration from config.json
+    # 1. Initialization and Cleanup
+    session_id = "sess_001"
+    if APP_CONFIG.get("clean_on_startup", True):
+        console.print("[dim]Cleaning previous session data...[/dim]")
+        # Clear database
+        clear_session(session_id)
+        # Clear data/raw folder
+        raw_dir = Path("data/raw")
+        if raw_dir.exists():
+            for file in raw_dir.glob("*.md"):
+                try:
+                    file.unlink()
+                except Exception as e:
+                    console.print(f"[red]Could not delete {file.name}: {e}[/red]")
+
+    # 2. Load configuration from config.json
     initial_state = AgentState(
         topic=APP_CONFIG.get("topic", "Default Topic"),
         goal=APP_CONFIG.get("goal", "Default Goal"),

@@ -9,6 +9,19 @@ def get_wsl_host_ip() -> str:
     """Returns localhost since we verified Ollama listens there."""
     return "127.0.0.1"
 
+def clear_session(session_id: str):
+    """Clears all data associated with a session to start fresh."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM crawled_urls WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM entities WHERE session_id = ?", (session_id,))
+        conn.commit()
+        conn.close()
+        console.print(f"[dim]Database cleared for session: {session_id}[/dim]")
+    except Exception as e:
+        console.print(f"[bold red]DB Error (clear_session): {e}[/bold red]")
+
 def get_url_hash(url: str) -> str:
     return hashlib.md5(url.encode('utf-8')).hexdigest()
 
