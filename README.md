@@ -6,12 +6,12 @@ Built natively for **Linux / WSL2** and orchestrated via **LangGraph**.
 
 ## 🧠 Architecture Overview
 
-The system operates on a recursive State Graph composed of 4 main nodes:
+The system operates on a recursive State Graph composed of 4 main nodes, organized in a modular structure:
 
-1. **[Planner] (Gemini 2.0 Flash):** Analyzes the Goal, evaluates the current knowledge base, and generates precise search queries to fill knowledge gaps.
-2. **[Crawler] (Crawl4AI + Serper API):** Asynchronously searches the web, downloads the top results, bypasses anti-bot protections, and converts raw HTML into clean Markdown.
-3. **[Analyst] (Local Ollama - Llama 3.2:3b):** Reads the downloaded Markdown files, extracts key technical entities, and updates the SQLite knowledge graph. Calculates the "Saturation Score".
-4. **[Synthesizer] (Gemini 2.0 Flash):** Once saturation is reached (or the loop limit is hit), it aggregates all the gathered knowledge and writes a definitive, highly structured Markdown report.
+1. **[Planner] (`nodes/planner.py`):** Analyzes the Goal, evaluates the current knowledge base, and generates precise search queries to fill knowledge gaps (Powered by Gemini).
+2. **[Crawler] (`nodes/crawler.py`):** Asynchronously searches the web via Serper API, downloads the top results, bypasses anti-bot protections, and converts raw HTML into clean Markdown using Crawl4AI.
+3. **[Analyst] (`nodes/analyst.py`):** Reads the downloaded Markdown files locally on your GPU, extracts key technical entities, and updates the SQLite knowledge graph. Calculates the "Saturation Score" (Powered by Local Ollama Llama 3.2).
+4. **[Synthesizer] (`nodes/synthesizer.py`):** Once saturation is reached, it aggregates all the gathered knowledge and writes a definitive, highly structured Markdown report (Powered by Gemini).
 
 ## ⚙️ Prerequisites
 
@@ -48,7 +48,6 @@ The system operates on a recursive State Graph composed of 4 main nodes:
    ```bash
    ollama pull llama3.2:3b
    ```
-   *Note: If you are running Ollama on a Windows Host while ARSA runs in WSL2, ensure you have set `OLLAMA_ORIGINS="*"` in your Windows environment variables.*
 
 ## 🏃‍♂️ Usage
 
@@ -58,17 +57,20 @@ The system operates on a recursive State Graph composed of 4 main nodes:
    ```
 
 2. **Define your Goal:**
-   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also tweak the models and limits here.
+   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also configure the automatic cleanup and token limits here.
    ```json
    {
-     "topic": "Your Topic Here",
-     "goal": "What exactly do you want to learn or build a guide about?",
+     "topic": "The history of Artificial Intelligence",
+     "goal": "Write a comprehensive guide on the evolution of AI.",
      "language": "English",
+     "clean_on_startup": true,
      "max_iterations": 3,
      "saturation_threshold": 0.85,
-     ...
+     "models": { ... },
+     "limits": { ... }
    }
    ```
+   *Note: If `clean_on_startup` is `true`, ARSA will automatically delete old downloads in `data/raw/` and clear the database for a fresh run.*
 
 3. **Run the Orchestrator:**
    ```bash
