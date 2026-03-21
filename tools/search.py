@@ -2,7 +2,7 @@ import os
 import json
 import aiohttp
 from typing import List
-from core.config import console
+from core.config import console, APP_CONFIG
 
 async def web_search(queries: List[str]) -> List[str]:
     serper_api_key = os.getenv("SERPER_API_KEY")
@@ -11,10 +11,12 @@ async def web_search(queries: List[str]) -> List[str]:
         return []
     
     urls = []
+    max_results = APP_CONFIG.get("limits", {}).get("max_search_results_per_query", 3)
+    
     async with aiohttp.ClientSession() as session:
         for query in queries:
             try:
-                payload = json.dumps({"q": query, "num": 3})
+                payload = json.dumps({"q": query, "num": max_results})
                 headers = {
                     'X-API-KEY': serper_api_key,
                     'Content-Type': 'application/json'

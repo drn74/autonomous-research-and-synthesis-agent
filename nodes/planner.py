@@ -1,5 +1,5 @@
 from core.state import AgentState, PlannerOutput
-from core.config import console
+from core.config import console, APP_CONFIG
 from database.db_manager import get_entities_from_db, save_entities_to_db
 from langchain_google_genai import ChatGoogleGenerativeAI
 from rich.panel import Panel
@@ -11,8 +11,9 @@ async def planner_node(state: AgentState) -> AgentState:
     db_entities = get_entities_from_db(session_mock)
     all_entities = list(set(state.get("entities", []) + db_entities))
 
+    model_name = APP_CONFIG.get("models", {}).get("planner", "gemini-2.5-flash")
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=model_name,
         temperature=0.2,
         max_retries=2
     )
@@ -39,7 +40,7 @@ async def planner_node(state: AgentState) -> AgentState:
     4. Estimate saturation ('saturation_estimate' 0.0 - 1.0). 1.0 = Topic completely covered.
     """
 
-    console.print("[dim]Invoking Gemini 2.0 Flash (Planner)...[/dim]")
+    console.print(f"[dim]Invoking {model_name} (Planner)...[/dim]")
     
     try:
         result: PlannerOutput = await structured_llm.ainvoke(prompt)
@@ -59,9 +60,12 @@ async def planner_node(state: AgentState) -> AgentState:
     new_iteration = state["iteration"] + 1
     
     is_saturated = False
-    if result.saturation_estimate >= 0.9 or new_iteration > 2: 
+    max_iter = APP_CONFIG.get("max_iterations", 3)
+    sat_thresh = APP_CONFIG.get("saturation_threshold", 0.85)
+    
+    if result.saturation_estimate >= sat_thresh or new_iteration > max_iter: 
         is_saturated = True
-        console.print("[bold red]WARNING: Saturation reached or Iteration limit exceeded![/bold red]")
+        console.print(f"[bold red]WARNING: Saturation reached (>={sat_thresh}) or Iteration limit exceeded (>{max_iter})![/bold red]")
 
     return {
         "topic": state["topic"],

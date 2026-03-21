@@ -58,14 +58,16 @@ The system operates on a recursive State Graph composed of 4 main nodes:
    ```
 
 2. **Define your Goal:**
-   Open `main.py` and modify the `initial_state` variable at the bottom of the file with your desired Topic, Goal, and Language.
-   ```python
-   initial_state = AgentState(
-       topic="Your Topic Here",
-       goal="What exactly do you want to learn or build a guide about?",
-       language="English", # Set to "Italian", "Spanish", etc. for localized research
-       # ...
-   )
+   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also tweak the models and limits here.
+   ```json
+   {
+     "topic": "Your Topic Here",
+     "goal": "What exactly do you want to learn or build a guide about?",
+     "language": "English",
+     "max_iterations": 3,
+     "saturation_threshold": 0.85,
+     ...
+   }
    ```
 
 3. **Run the Orchestrator:**

@@ -4,7 +4,7 @@ import json
 import aiohttp
 from pathlib import Path
 from core.state import AgentState
-from core.config import console
+from core.config import console, APP_CONFIG
 from database.db_manager import get_wsl_host_ip, get_pending_files, mark_file_analyzed, save_entities_to_db, get_entities_from_db
 from rich.panel import Panel
 
@@ -17,7 +17,7 @@ async def run_local_analysis(file_path: str, goal: str, wsl_ip: str, language: s
     except Exception as e:
         return {"error": f"File read error: {e}"}
 
-    max_chars = 6000 
+    max_chars = APP_CONFIG.get("limits", {}).get("max_chars_for_local_analysis", 6000)
     if len(content) > max_chars:
         content = content[:max_chars] + "\n\n[...]"
 
@@ -42,9 +42,10 @@ TEXT TO ANALYZE:
 JSON RESPONSE:
 """
 
+    model_name = APP_CONFIG.get("models", {}).get("analyst", "llama3.2:3b")
     ollama_url = f"http://{wsl_ip}:11434/api/generate"
     payload = {
-        "model": "llama3.2:3b",
+        "model": model_name,
         "prompt": prompt,
         "format": "json",
         "stream": False,

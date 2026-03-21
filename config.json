@@ -1,0 +1,17 @@
+{
+  "topic": "The history of Artificial Intelligence",
+  "goal": "Write a comprehensive guide on the evolution of AI from the 1950s to modern LLMs.",
+  "language": "English",
+  "max_iterations": 3,
+  "saturation_threshold": 0.85,
+  "models": {
+    "planner": "gemini-2.5-flash",
+    "analyst": "llama3.2:3b",
+    "synthesizer": "gemini-2.5-flash"
+  },
+  "limits": {
+    "max_search_results_per_query": 3,
+    "max_chars_for_local_analysis": 6000,
+    "max_chars_for_synthesis": 800000
+  }
+}

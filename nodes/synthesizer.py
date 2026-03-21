@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from datetime import datetime
 from core.state import AgentState
-from core.config import console
+from core.config import console, APP_CONFIG
 from database.db_manager import get_entities_from_db
 from langchain_google_genai import ChatGoogleGenerativeAI
 from rich.panel import Panel
@@ -30,12 +30,14 @@ async def synthesizer_node(state: AgentState) -> AgentState:
             except Exception:
                 pass
                 
-    max_chars_for_gemini = 800000
+    max_chars_for_gemini = APP_CONFIG.get("limits", {}).get("max_chars_for_synthesis", 800000)
     if len(all_content) > max_chars_for_gemini:
+        console.print(f"[yellow]Warning: Text too long ({len(all_content)} char). Truncating to {max_chars_for_gemini} char for API limits.[/yellow]")
         all_content = all_content[:max_chars_for_gemini]
 
+    model_name = APP_CONFIG.get("models", {}).get("synthesizer", "gemini-2.5-flash")
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=model_name,
         temperature=0.3, 
         max_retries=2
     )

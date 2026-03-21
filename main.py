@@ -1,17 +1,17 @@
 import asyncio
 from rich.panel import Panel
-from core.config import console
+from core.config import console, APP_CONFIG
 from core.state import AgentState
 from workflow import app
 
 async def main():
     console.print(Panel.fit("[bold green]Starting ARSA LangGraph Orchestrator (Async)[/bold green]", border_style="green"))
     
-    # EXAMPLE: Localized research
+    # Load configuration from config.json
     initial_state = AgentState(
-        topic="Cooking in Liguria in antiquity",
-        goal="Create a historical guide on the ingredients, recipes, and culinary traditions of Liguria in ancient and Roman times.",
-        language="Italian", # <--- NEW VARIABLE! You can set it to "English" for tech topics.
+        topic=APP_CONFIG.get("topic", "Default Topic"),
+        goal=APP_CONFIG.get("goal", "Default Goal"),
+        language=APP_CONFIG.get("language", "English"),
         queries=[],
         entities=[],
         iteration=0,
