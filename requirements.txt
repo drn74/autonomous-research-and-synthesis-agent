@@ -1,0 +1,23 @@
+# Core Orchestration
+langgraph
+langchain
+langchain-community
+langchain-google-genai
+
+# LLM & Validation
+pydantic>=2.0
+openai
+python-dotenv
+
+# Scraping & Data Extraction
+crawl4ai
+playwright
+beautifulsoup4
+
+# Database
+sqlite3-api  # Standard library handles sqlite3, but some wrappers might be used
+
+# Utilities
+requests
+tqdm
+pyyaml
