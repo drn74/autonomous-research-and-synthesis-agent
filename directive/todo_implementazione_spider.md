@@ -27,10 +27,10 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 ---
 
 ## 📅 FASE 4: Il Nodo Site Spider (Strategia Ibrida)
-- [ ] **4.1 Implementazione BFS + Sitemap**:
+- [x] **4.1 Implementazione BFS + Sitemap**:
     - Funzione per estrarre URL da Sitemap XML.
     - Coda BFS per navigazione ricorsiva dei tag `<a>` (con limite di profondità).
-- [ ] **4.2 Elaborazione Multi-Target**: Ciclo sequenziale se vengono rilevati più domini densi.
+- [x] **4.2 Elaborazione Multi-Target**: Ciclo sequenziale se vengono rilevati più domini densi.
 
 ---
 
