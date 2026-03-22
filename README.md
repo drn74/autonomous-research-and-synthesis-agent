@@ -1,17 +1,19 @@
 # ARSA: Autonomous Research & Synthesis Agent
 
-ARSA is an open-source, multi-agent AI system designed to autonomously plan, execute, and synthesize deep research on any given topic. By combining the reasoning capabilities of **Cloud LLMs (Gemini 2.0 Flash)** with the cost-efficiency of **Local LLMs (Ollama/Llama 3.2)**, ARSA can surf the web, read dozens of technical articles, extract entities, and produce a comprehensive, "RAG-ready" final Markdown guide.
+ARSA is an open-source, multi-agent AI system designed to autonomously plan, execute, and synthesize deep research on any given topic. By combining the reasoning capabilities of **Cloud LLMs (Gemini 2.5 Flash)** with the cost-efficiency of **Local LLMs (Ollama/Llama 3.2)**, ARSA can surf the web, read dozens of technical articles, extract entities, and produce a comprehensive, "RAG-ready" final Markdown guide.
 
 Built natively for **Linux / WSL2** and orchestrated via **LangGraph**.
 
 ## 🧠 Architecture Overview
 
-The system operates on a recursive State Graph composed of 4 main nodes, organized in a modular structure:
+The system operates on a recursive State Graph composed of 6 main nodes, organized in a modular structure. ARSA features a dynamic routing system capable of detecting high-density information sources (like Wikis or documentation sites) and switching from a broad search to a deep, recursive crawl.
 
 1. **[Planner] (`nodes/planner.py`):** Analyzes the Goal, evaluates the current knowledge base, and generates precise search queries to fill knowledge gaps (Powered by Gemini).
 2. **[Crawler] (`nodes/crawler.py`):** Asynchronously searches the web via Serper API, downloads the top results, bypasses anti-bot protections, and converts raw HTML into clean Markdown using Crawl4AI.
-3. **[Analyst] (`nodes/analyst.py`):** Reads the downloaded Markdown files locally on your GPU, extracts key technical entities, and updates the SQLite knowledge graph. Calculates the "Saturation Score" (Powered by Local Ollama Llama 3.2).
-4. **[Synthesizer] (`nodes/synthesizer.py`):** Once saturation is reached, it aggregates all the gathered knowledge and writes a definitive, highly structured Markdown report (Powered by Gemini).
+3. **[Domain Detector] (`nodes/domain_detector.py`):** Semantically analyzes the URLs found by the crawler to identify "dense domains" (e.g., specialized wikis, forums). If detected, it routes the graph to the Site Spider.
+4. **[Site Spider] (`nodes/site_spider.py`):** When a dense domain is found, this node activates a recursive Breadth-First Search (BFS) and Sitemap extraction to deeply mine the specific website, extracting dozens of internal pages.
+5. **[Analyst] (`nodes/analyst.py`):** Reads the downloaded Markdown files locally on your GPU, extracts key technical entities, and updates the SQLite knowledge graph. Calculates the "Saturation Score" (Powered by Local Ollama Llama 3.2).
+6. **[Synthesizer] (`nodes/synthesizer.py`):** Once saturation is reached, it aggregates all the gathered knowledge and writes a definitive, highly structured Markdown report (Powered by Gemini).
 
 ## ⚙️ Prerequisites
 
@@ -56,8 +58,8 @@ The system operates on a recursive State Graph composed of 4 main nodes, organiz
    source arsa-env/bin/activate
    ```
 
-2. **Define your Goal:**
-   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also configure the automatic cleanup and token limits here.
+2. **Configure your Research:**
+   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also configure the automatic cleanup, token limits, and the Site Spider parameters here.
    ```json
    {
      "topic": "The history of Artificial Intelligence",
@@ -66,6 +68,13 @@ The system operates on a recursive State Graph composed of 4 main nodes, organiz
      "clean_on_startup": true,
      "max_iterations": 3,
      "saturation_threshold": 0.85,
+     "site_spider": {
+       "enabled": true,
+       "max_pages_per_domain": 20,
+       "max_depth": 3,
+       "request_delay_seconds": 1.5,
+       "use_sitemap": true
+     },
      "models": { ... },
      "limits": { ... }
    }
@@ -77,7 +86,7 @@ The system operates on a recursive State Graph composed of 4 main nodes, organiz
    python main.py
    ```
 
-Watch your terminal as ARSA plans, crawls the web with a progress bar, extracts data locally on your GPU, and finally synthesizes the research!
+Watch your terminal as ARSA plans, crawls the web, detects dense knowledge bases, recursively spiders them, extracts data locally on your GPU, and finally synthesizes the research!
 
 ## 📁 Output
 
