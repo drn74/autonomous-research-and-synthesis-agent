@@ -5,6 +5,8 @@ class AgentState(TypedDict):
     topic: str
     goal: str
     language: str
+    mode: str # "normal" or "deep_crawl"
+    dense_domains: List[dict] # Output from domain_detector
     queries: List[str]
     entities: List[str]
     crawled_urls: List[str] # New field for transient URLs

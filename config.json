@@ -5,6 +5,13 @@
   "clean_on_startup": true,
   "max_iterations": 3,
   "saturation_threshold": 0.85,
+  "site_spider": {
+    "enabled": true,
+    "max_pages_per_domain": 20,
+    "max_depth": 3,
+    "request_delay_seconds": 1.5,
+    "use_sitemap": true
+  },
   "models": {
     "planner": "gemini-2.5-flash",
     "analyst": "llama3.2:3b",

@@ -36,6 +36,8 @@ async def main():
         topic=APP_CONFIG.get("topic", "Default Topic"),
         goal=APP_CONFIG.get("goal", "Default Goal"),
         language=APP_CONFIG.get("language", "English"),
+        mode="normal",
+        dense_domains=[],
         queries=[],
         entities=[],
         crawled_urls=[],
