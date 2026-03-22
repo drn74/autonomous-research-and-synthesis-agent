@@ -35,7 +35,7 @@ async def planner_node(state: AgentState) -> AgentState:
     4. Estimate saturation ('saturation_estimate' 0.0 - 1.0). 1.0 = Topic completely covered.
     """
 
-    console.print(f"[dim]Invoking {model_name} (Planner)...[/dim]")
+    console.print("[dim]Invoking Gemini (Planner)...[/dim]")
     
     try:
         result: PlannerOutput = await structured_llm.ainvoke(prompt)
