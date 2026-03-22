@@ -1,7 +1,7 @@
 from core.state import AgentState, PlannerOutput
 from core.config import console, APP_CONFIG
+from core.llm import get_gemini_model
 from database.db_manager import get_entities_from_db, save_entities_to_db
-from langchain_google_genai import ChatGoogleGenerativeAI
 from rich.panel import Panel
 
 async def planner_node(state: AgentState) -> AgentState:
@@ -11,12 +11,7 @@ async def planner_node(state: AgentState) -> AgentState:
     db_entities = get_entities_from_db(session_mock)
     all_entities = list(set(state.get("entities", []) + db_entities))
 
-    model_name = APP_CONFIG.get("models", {}).get("planner", "gemini-2.5-flash")
-    llm = ChatGoogleGenerativeAI(
-        model=model_name,
-        temperature=0.2,
-        max_retries=2
-    )
+    llm = get_gemini_model(purpose="planner", temperature=0.2)
     
     structured_llm = llm.with_structured_output(PlannerOutput)
 

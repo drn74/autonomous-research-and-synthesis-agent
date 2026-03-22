@@ -3,10 +3,9 @@ from pathlib import Path
 from datetime import datetime
 from core.state import AgentState
 from core.config import console, APP_CONFIG
-from database.db_manager import get_entities_from_db
-from langchain_google_genai import ChatGoogleGenerativeAI
+from core.llm import get_gemini_model
+from database.db_manager import get_entities_from_db, sanitize_filename
 from rich.panel import Panel
-from nodes.crawler import sanitize_filename
 
 async def synthesizer_node(state: AgentState) -> AgentState:
     console.print("\n[magenta]>>> SYNTHESIZER NODE: Generating the Final Guide...[/magenta]")
@@ -36,11 +35,7 @@ async def synthesizer_node(state: AgentState) -> AgentState:
         all_content = all_content[:max_chars_for_gemini]
 
     model_name = APP_CONFIG.get("models", {}).get("synthesizer", "gemini-2.5-flash")
-    llm = ChatGoogleGenerativeAI(
-        model=model_name,
-        temperature=0.3, 
-        max_retries=2
-    )
+    llm = get_gemini_model(purpose="synthesizer", temperature=0.3)
 
     prompt = f"""
     Act as a Senior Technical Writer and an Expert. 

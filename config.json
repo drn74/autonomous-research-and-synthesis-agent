@@ -1,7 +1,7 @@
 {
-  "topic": "The history of Artificial Intelligence",
-  "goal": "Write a comprehensive guide on the evolution of AI from the 1950s to modern LLMs.",
-  "language": "English",
+  "topic": "La cucina storica in liguria ricette e racconti",
+  "goal": "Scrivi un libro sulla cucina storica ligure con ricette ed aneddoti",
+  "language": "Italian",
   "clean_on_startup": true,
   "max_iterations": 3,
   "saturation_threshold": 0.85,

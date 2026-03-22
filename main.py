@@ -1,8 +1,13 @@
 import asyncio
 import os
 import shutil
+import warnings
 from pathlib import Path
 from rich.panel import Panel
+
+# Suppress annoying dependency warnings from requests
+warnings.filterwarnings("ignore", message="urllib3 .* or chardet .* doesn't match a supported version!")
+
 from core.config import console, APP_CONFIG
 from core.state import AgentState
 from database.db_manager import clear_session
@@ -33,6 +38,7 @@ async def main():
         language=APP_CONFIG.get("language", "English"),
         queries=[],
         entities=[],
+        crawled_urls=[],
         iteration=0,
         saturation_score=0.0,
         notes_path=None,

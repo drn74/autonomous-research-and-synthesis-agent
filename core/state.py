@@ -7,6 +7,7 @@ class AgentState(TypedDict):
     language: str
     queries: List[str]
     entities: List[str]
+    crawled_urls: List[str] # New field for transient URLs
     iteration: int
     saturation_score: float
     notes_path: Optional[str]

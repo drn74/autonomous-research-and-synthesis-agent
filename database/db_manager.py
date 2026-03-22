@@ -1,9 +1,39 @@
 import sqlite3
 import hashlib
+import re
+from pathlib import Path
+from datetime import datetime
 from typing import List
 from core.config import console
 
 DB_PATH = "research.db"
+
+def sanitize_filename(name: str) -> str:
+    return re.sub(r'[^\w\-_\. ]', '_', name)
+
+def save_markdown_to_raw(url: str, content: str, session_id: str) -> str:
+    """
+    Saves markdown content to data/raw/ and records it in the database.
+    Returns the filepath of the saved file.
+    """
+    raw_dir = Path("data/raw")
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    slug = sanitize_filename(url.split('//')[-1][:40])
+    filename = f"{timestamp}_{slug}.md"
+    filepath = raw_dir / filename
+    
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(f"---\nurl: {url}\ntimestamp: {timestamp}\n---\n\n")
+            f.write(content)
+            
+        save_crawled_url(url, session_id, str(filepath))
+        return str(filepath)
+    except Exception as e:
+        console.print(f"[bold red]Error saving markdown for {url}: {e}[/bold red]")
+        return ""
 
 def get_wsl_host_ip() -> str:
     """Returns localhost since we verified Ollama listens there."""
