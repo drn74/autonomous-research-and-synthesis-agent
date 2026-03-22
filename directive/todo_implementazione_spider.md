@@ -21,8 +21,8 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 ---
 
 ## 📅 FASE 3: Il Nodo Domain Detector
-- [ ] **3.1 Creazione `nodes/domain_detector.py`**: Prompt Gemini per analisi densità informativa e identificazione entry-points.
-- [ ] **3.2 Routing Condizionale**: Implementare `route_after_detection` in `workflow.py`.
+- [x] **3.1 Creazione `nodes/domain_detector.py`**: Prompt Gemini per analisi densità informativa e identificazione entry-points.
+- [x] **3.2 Routing Condizionale**: Implementare `route_after_detection` in `workflow.py`.
 
 ---
 
