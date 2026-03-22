@@ -41,7 +41,7 @@ If no domain deserves a deep crawl, return:
   "reason": "Explanation"
 }}
 
-Recommended threshold: activate deep crawl if density_score >= 0.75 and url_count >= 2.
+Recommended threshold: activate deep crawl if density_score >= 0.75 and url_count >= 1.
 """
 
 async def domain_detector_node(state: AgentState) -> AgentState:

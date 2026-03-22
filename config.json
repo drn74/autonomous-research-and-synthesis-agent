@@ -1,6 +1,6 @@
 {
-  "topic": "La cucina storica in liguria ricette e racconti",
-  "goal": "Scrivi un libro sulla cucina storica ligure con ricette ed aneddoti",
+  "topic": "Programmazione assembler 6502/6510, esempi di codice, implementazione demoscene, programmazione game su Commodore 64",
+  "goal": "Creare documentazione .md per RAG con tutte le informazioni su sviluppo di game, demoscene, sprite multiplexing, SID programming, raster interrupts, ecc.",
   "language": "Italian",
   "clean_on_startup": true,
   "max_iterations": 3,

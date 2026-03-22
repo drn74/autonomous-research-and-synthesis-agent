@@ -35,5 +35,5 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 ---
 
 ## 📅 FASE 5: Orchestrazione e Integrazione Finale
-- [ ] **5.1 Assemblaggio Grafo**: Inserire i nuovi nodi e archi in `workflow.py`.
-- [ ] **5.2 Testing Night-Run**: Validazione su topic ad alta densità informativa.
+- [x] **5.1 Assemblaggio Grafo**: Inserire i nuovi nodi e archi in `workflow.py`.
+- [x] **5.2 Testing Night-Run**: Validazione su topic ad alta densità informativa.
