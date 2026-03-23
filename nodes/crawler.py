@@ -2,6 +2,7 @@ from core.state import AgentState
 from core.config import console
 from tools.search import web_search
 from database.db_manager import is_url_crawled, save_markdown_to_raw
+from core.resource_handler import extract_markdown_from_url
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
@@ -39,16 +40,17 @@ async def crawler_node(state: AgentState) -> AgentState:
             for url in urls_to_crawl:
                 progress.update(crawl_task, description=f"[cyan]Downloading: {url[:60]}...[/cyan]")
                 try:
-                    result = await crawler.arun(url=url, config=run_config)
-                    if result.success:
-                        content = result.markdown if hasattr(result, 'markdown') else str(result.html)
+                    result = await extract_markdown_from_url(url, crawler, run_config)
+                    if result.get("success"):
+                        content = result.get("markdown", "")
                         filepath = save_markdown_to_raw(url, content, session_mock)
                         
                         if filepath:
                             progress.console.print(f"[green]✓ Success:[/green] {url[:40]} saved.")
                             successfully_crawled.append(url)
                     else:
-                        progress.console.print(f"[red]✗ Failed:[/red] {url}")
+                        error_msg = result.get("error", "Unknown error")
+                        progress.console.print(f"[red]✗ Failed:[/red] {url} - {error_msg}")
                 except Exception as e:
                      progress.console.print(f"[red]✗ Error:[/red] {url} - {e}")
                 finally:

@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from core.state import AgentState
 from core.config import console, APP_CONFIG
 from database.db_manager import is_url_crawled, save_markdown_to_raw
+from core.resource_handler import extract_markdown_from_url
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 import aiohttp
@@ -122,11 +123,11 @@ async def site_spider_node(state: AgentState) -> AgentState:
                         # Rispetto del Rate Limit
                         await asyncio.sleep(delay)
                         
-                        result = await crawler.arun(url=current_url, config=run_config)
+                        # Usa il Resource Handler Universale
+                        result = await extract_markdown_from_url(current_url, crawler, run_config)
                         
-                        if result.success:
-                            # Salvataggio
-                            content = result.markdown if hasattr(result, 'markdown') else str(result.html)
+                        if result.get("success"):
+                            content = result.get("markdown", "")
                             filepath = save_markdown_to_raw(current_url, content, session_mock)
                             
                             if filepath:
@@ -134,15 +135,18 @@ async def site_spider_node(state: AgentState) -> AgentState:
                                 pages_downloaded_for_domain += 1
                                 progress.advance(spider_task)
                                 
-                                # Estrazione nuovi link per la BFS
+                                # Estrazione nuovi link per la BFS (solo se abbiamo HTML)
                                 if current_depth < max_depth:
-                                    html_content = str(result.html) if hasattr(result, 'html') else ""
+                                    html_content = result.get("html", "")
                                     if html_content:
                                         new_links = extract_internal_links(html_content, current_url, domain)
                                         for link in new_links:
                                             if link not in visited_in_this_run:
                                                 queue.append((link, current_depth + 1))
                                                 
+                        else:
+                            error_msg = result.get("error", "Unknown error")
+                            progress.console.print(f"[red]✗ Failed:[/red] {current_url} - {error_msg}")
                     except Exception as e:
                         progress.console.print(f"[red]Errore spider su {current_url}: {e}[/red]")
             

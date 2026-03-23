@@ -13,6 +13,8 @@ python-dotenv
 crawl4ai
 playwright
 beautifulsoup4
+pymupdf4llm
+aiofiles
 
 # Database
 sqlite3-api  # Standard library handles sqlite3, but some wrappers might be used

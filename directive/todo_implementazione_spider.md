@@ -41,7 +41,7 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 ---
 
 ## 📅 FASE 6: Resource Manager Multi-Formato (PDF & YouTube)
-- [ ] **6.1 Creazione `core/resource_handler.py`**: Modulo centrale per delegare il download in base al Content-Type o all'URL.
-- [ ] **6.2 Integrazione `marker-pdf`**: Aggiungere il parsing intelligente dei documenti PDF in Markdown.
+- [x] **6.1 Creazione `core/resource_handler.py`**: Modulo centrale per delegare il download in base al Content-Type o all'URL.
+- [x] **6.2 Integrazione `pymupdf4llm`**: Aggiungere il parsing intelligente dei documenti PDF in Markdown.
 - [ ] **6.3 Integrazione `youtube-transcript-api`**: Estrazione automatica dei sottotitoli dai video YouTube.
-- [ ] **6.4 Refactoring Crawler & Spider**: Aggiornare i nodi di scraping per usare il nuovo gestore universale invece di chiamare direttamente Crawl4AI.
+- [x] **6.4 Refactoring Crawler & Spider**: Aggiornare i nodi di scraping per usare il nuovo gestore universale invece di chiamare direttamente Crawl4AI.
