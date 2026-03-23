@@ -37,3 +37,11 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 ## 📅 FASE 5: Orchestrazione e Integrazione Finale
 - [x] **5.1 Assemblaggio Grafo**: Inserire i nuovi nodi e archi in `workflow.py`.
 - [x] **5.2 Testing Night-Run**: Validazione su topic ad alta densità informativa.
+
+---
+
+## 📅 FASE 6: Resource Manager Multi-Formato (PDF & YouTube)
+- [ ] **6.1 Creazione `core/resource_handler.py`**: Modulo centrale per delegare il download in base al Content-Type o all'URL.
+- [ ] **6.2 Integrazione `marker-pdf`**: Aggiungere il parsing intelligente dei documenti PDF in Markdown.
+- [ ] **6.3 Integrazione `youtube-transcript-api`**: Estrazione automatica dei sottotitoli dai video YouTube.
+- [ ] **6.4 Refactoring Crawler & Spider**: Aggiornare i nodi di scraping per usare il nuovo gestore universale invece di chiamare direttamente Crawl4AI.
