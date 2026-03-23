@@ -91,7 +91,8 @@ async def process_youtube(url: str) -> dict:
         
         # Prova a prendere il transcript (preferisce l'italiano o l'inglese, o tradotti automaticamente)
         def fetch_transcript():
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            ytt_api = YouTubeTranscriptApi()
+            transcript_list = ytt_api.list(video_id)
             try:
                 # Prova a prendere italiano o inglese
                 transcript = transcript_list.find_transcript(['it', 'en'])
