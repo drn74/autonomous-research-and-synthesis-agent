@@ -1,15 +1,15 @@
 {
-  "topic": "La pesca con il pane in Italia: mare, storia, tradizioni e tecniche di pasturazione",
-  "goal": "Raccogliere materiale esaustivo per un libro di 100+ pagine. Documentare: 1. Evoluzione storica della pesca col pane nelle marinerie italiane (es. Napoli, Puglia, Liguria). 2. Analisi tecnica delle varietà di pane (francesino, pan carré, pane di Altamura) e loro idro-resistenza. 3. Ricette regionali per la pastura (brumeggio) e l'innesco (fiocco, crusta, polpetta). 4. Aneddoti di pescatori locali e folklore legato alla pesca alla spigola e al cefalo. 5. Terminologia dialettale specifica.",
-  "language": "Italian",
+  "topic": "Commodore 64 Assembly Language: Game Development, Demoscene Techniques, and Hardware Optimization",
+  "goal": "Create a definitive technical manual for C64 assembly programming. The documentation must cover: 1. Core 6502/6510 instruction set and optimization. 2. Advanced graphics programming using the VIC-II (sprites, multiplexing, raster interrupts, and scrolling). 3. Audio synthesis and SID chip programming (ADSR, filters, and wavetables). 4. Demoscene-specific algorithms and math. 5. Practical source code examples and production best practices. Ensure high verbosity for RAG indexing.",
+  "language": "English",
   "clean_on_startup": true,
   "max_iterations": 5,
   "saturation_threshold": 0.90,
   "site_spider": {
     "enabled": true,
-    "max_pages_per_domain": 40,
-    "max_depth": 4,
-    "request_delay_seconds": 1.5,
+    "max_pages_per_domain": 100,
+    "max_depth": 5,
+    "request_delay_seconds": 1.2,
     "use_sitemap": true
   },
   "models": {
@@ -18,8 +18,9 @@
     "synthesizer": "gemini-2.5-flash"
   },
   "limits": {
-    "max_search_results_per_query": 3,
+    "max_search_results_per_query": 5,
     "max_chars_for_local_analysis": 6000,
-    "max_chars_for_synthesis": 800000
+    "max_chars_for_synthesis": 1000000,
+    "detail_level": "high"
   }
 }

@@ -5,7 +5,7 @@ import aiohttp
 from pathlib import Path
 from core.state import AgentState
 from core.config import console, APP_CONFIG
-from database.db_manager import get_wsl_host_ip, get_pending_files, mark_file_analyzed, save_entities_to_db, get_entities_from_db
+from database.db_manager import get_wsl_host_ip, get_pending_files, mark_file_analyzed, save_entities_to_db, get_entities_from_db, save_knowledge_chunk
 from rich.panel import Panel
 
 async def run_local_analysis(file_path: str, goal: str, wsl_ip: str, language: str) -> dict:
@@ -21,18 +21,35 @@ async def run_local_analysis(file_path: str, goal: str, wsl_ip: str, language: s
     if len(content) > max_chars:
         content = content[:max_chars] + "\n\n[...]"
 
+    # Prompt in English for maximum stability and reasoning power
     prompt = f"""
-You are a data extractor. Your task is to identify key entities, concepts, and names from the text below.
-The text you are reading might be in "{language}" language. 
-The Goal of the research is: {goal}
+You are a specialized Knowledge Extractor. Your task is to analyze the following text and extract TWO types of information related to the RESEARCH GOAL.
 
-Instructions:
-1. Return ONLY a JSON object with a list of up to 10 entities extracted from the text.
-2. Ensure the JSON structure and keys are in English (e.g. {{"entities": [...]}}), but the extracted values should remain in their original language.
-3. DO NOT answer questions in the text.
-4. If no relevant entities are found, return an empty list.
+RESEARCH GOAL: "{goal}"
+INPUT TEXT LANGUAGE: "{language}"
 
-Example Output: {{"entities": ["Entity1", "Entity2"]}}
+TASK:
+1. Extract a list of key technical entities (names, frameworks, specific ingredients, tools).
+2. Extract "Knowledge Chunks": These are high-value text blocks such as:
+   - Source code snippets (if any).
+   - Detailed recipes or step-by-step procedures.
+   - Comprehensive technical explanations or data tables.
+   - Historical anecdotes or specific facts.
+
+OUTPUT INSTRUCTIONS:
+- Respond ONLY with a valid JSON object.
+- Use English for JSON keys.
+- Keep the extracted content in its ORIGINAL language.
+- Format:
+{{
+    "entities": ["Entity 1", "Entity 2", ...],
+    "knowledge_chunks": [
+        {{
+            "content": "The full text of the snippet...",
+            "type": "code|recipe|technical|anecdote"
+        }}
+    ]
+}}
 
 TEXT TO ANALYZE:
 \"\"\"
@@ -52,7 +69,7 @@ JSON RESPONSE:
         "options": {
             "temperature": 0.0,
             "num_ctx": 4096,
-            "num_predict": 512
+            "num_predict": 1024 # Increased to allow for longer chunks
         }
     }
 
@@ -68,25 +85,25 @@ JSON RESPONSE:
                         if match:
                             json_str = match.group(0)
                         else:
-                            if result_text.startswith('{') and not result_text.endswith('}'):
-                                json_str = result_text + '"]}' if '"entities"' in result_text else result_text + '}'
-                            else:
-                                json_str = result_text
+                            json_str = result_text
 
                         parsed_json = json.loads(json_str)
+                        if not isinstance(parsed_json, dict):
+                            return {"error": "JSON is not an object."}
                         return {
                             "entities": parsed_json.get("entities", []),
+                            "knowledge_chunks": parsed_json.get("knowledge_chunks", []),
                             "inference_time": time.time() - start_time
                         }
                     except Exception:
-                        return {"error": f"JSON parsing error."}
+                        return {"error": "JSON parsing error."}
                 else:
                     return {"error": f"API Error: {response.status}"}
         except Exception as e:
             return {"error": str(e)}
 
 async def analyst_node(state: AgentState) -> AgentState:
-    console.print("\n[blue]>>> ANALYST NODE: Analyzing results with Ollama (Llama 3.2)...[/blue]")
+    console.print("\n[blue]>>> ANALYST NODE: Extracting Knowledge with Ollama (Llama 3.2)...[/blue]")
     
     session_mock = "sess_001"
     pending_files = get_pending_files(session_mock)
@@ -97,6 +114,7 @@ async def analyst_node(state: AgentState) -> AgentState:
 
     wsl_ip = get_wsl_host_ip()
     new_entities_found = set()
+    total_chunks_saved = 0
     
     for url_hash, local_path in pending_files:
         if not local_path:
@@ -104,7 +122,7 @@ async def analyst_node(state: AgentState) -> AgentState:
              continue
              
         filename = Path(local_path).name
-        console.print(f"[cyan]Analysis in progress:[/cyan] {filename}")
+        console.print(f"[cyan]Deep Analysis in progress:[/cyan] {filename}")
         
         result = await run_local_analysis(local_path, state['goal'], wsl_ip, state['language'])
         
@@ -113,20 +131,31 @@ async def analyst_node(state: AgentState) -> AgentState:
              continue
              
         entities = result.get("entities", [])
+        chunks = result.get("knowledge_chunks", [])
         inf_time = result.get("inference_time", 0.0)
         
+        # Save Entities
         valid_entities = [e for e in entities if e and isinstance(e, str) and len(e) < 50]
-        
-        console.print(Panel(
-            f"[green]File:[/green] {filename}\n"
-            f"[yellow]Extracted entities:[/yellow] {len(valid_entities)}\n"
-            f"[magenta]GPU inference time:[/magenta] {inf_time:.2f}s",
-            title="Local LLM Result", border_style="blue"
-        ))
-        
         if valid_entities:
             save_entities_to_db(session_mock, valid_entities)
             new_entities_found.update(valid_entities)
+            
+        # Save Knowledge Chunks
+        source_url = "" # In a real scenario we'd fetch this from the DB
+        for chunk in chunks:
+            content = chunk.get("content")
+            c_type = chunk.get("type", "technical")
+            if content and len(content) > 20: # Avoid tiny snippets
+                save_knowledge_chunk(session_mock, filename, content, c_type)
+                total_chunks_saved += 1
+        
+        console.print(Panel(
+            f"[green]File:[/green] {filename}\n"
+            f"[yellow]Entities:[/yellow] {len(valid_entities)}\n"
+            f"[cyan]Knowledge Chunks:[/cyan] {len(chunks)}\n"
+            f"[magenta]GPU Time:[/magenta] {inf_time:.2f}s",
+            title="Extraction Result", border_style="blue"
+        ))
             
         mark_file_analyzed(url_hash)
 
@@ -134,23 +163,17 @@ async def analyst_node(state: AgentState) -> AgentState:
     unique_entities_count = len(all_db_entities)
     calculated_saturation = min(unique_entities_count / 50.0, 1.0)
     
-    console.print(f"\n[bold blue]Total unique entities in DB:[/bold blue] {unique_entities_count}")
-    console.print(f"[bold magenta]New Saturation Score calculated:[/bold magenta] {calculated_saturation:.2f}")
+    console.print(f"\n[bold blue]Total entities in DB:[/bold blue] {unique_entities_count}")
+    console.print(f"[bold cyan]Total knowledge chunks saved:[/bold cyan] {total_chunks_saved}")
+    console.print(f"[bold magenta]Saturation Score:[/bold magenta] {calculated_saturation:.2f}")
 
     is_saturated = False
     if calculated_saturation >= 0.85:
         is_saturated = True
-        console.print("[bold red]WARNING: Saturation reached via local analysis![/bold red]")
 
     return {
-        "topic": state["topic"],
-        "goal": state["goal"],
-        "language": state["language"],
-        "queries": state["queries"],
+        **state,
         "entities": list(set(state.get("entities", []) + list(new_entities_found))),
-        "iteration": state["iteration"],
         "saturation_score": calculated_saturation,
-        "notes_path": state.get("notes_path"),
-        "plan": state.get("plan"),
         "is_saturated": is_saturated
     }

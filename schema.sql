@@ -43,3 +43,15 @@ CREATE TABLE IF NOT EXISTS research_steps (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
+
+-- Tabella degli snippet tecnici, codice e ricette (Knowledge Extraction)
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+    chunk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    source_url TEXT,
+    content TEXT,
+    content_type TEXT, -- 'code', 'recipe', 'technical_explanation', etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+);
+
