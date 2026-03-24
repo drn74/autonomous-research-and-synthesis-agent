@@ -81,12 +81,19 @@ The system operates on a recursive State Graph composed of 6 main nodes, organiz
    ```
    *Note: If `clean_on_startup` is `true`, ARSA will automatically delete old downloads in `data/raw/` and clear the database for a fresh run.*
 
-3. **Run the Orchestrator:**
+3. **Run the Extraction Phase (Researcher):**
+   This script runs the core agentic loop (Planner, Crawler, Analyst) to populate the local database and `data/raw/` directory. It can take a long time depending on the depth of the search.
    ```bash
-   python main.py
+   python run_researcher.py
    ```
 
-Watch your terminal as ARSA plans, crawls the web, detects dense knowledge bases, recursively spiders them, extracts data locally on your GPU, and finally synthesizes the research!
+4. **Run the Synthesis Phase (Synthesizer):**
+   Once the extraction is complete (or if you want to regenerate the final document with different prompt settings without re-downloading), run the synthesizer. It generates the final Markdown dossier in the `output/` directory instantly.
+   ```bash
+   python run_synthesizer.py
+   ```
+
+Watch your terminal as ARSA plans, crawls the web, detects dense knowledge bases, recursively spiders them, extracts data locally on your GPU, and finally synthesizes the research into a clean dataset!
 
 ## 📁 Output
 

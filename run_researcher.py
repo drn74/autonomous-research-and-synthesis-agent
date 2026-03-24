@@ -14,7 +14,7 @@ from database.db_manager import clear_session
 from workflow import app
 
 async def main():
-    console.print(Panel.fit("[bold green]Starting ARSA LangGraph Orchestrator (Async)[/bold green]", border_style="green"))
+    console.print(Panel.fit("[bold green]Starting ARSA LangGraph Researcher (Data Gathering)[/bold green]", border_style="green"))
     
     # 1. Initialization and Cleanup
     session_id = "sess_001"
@@ -54,9 +54,10 @@ async def main():
 
     try:
         final_state = await app.ainvoke(initial_state)
-        console.print("\n[bold green]Graph completed![/bold green]")
+        console.print("\n[bold green]Research phase completed successfully! All data is saved in SQLite and data/raw/.[/bold green]")
+        console.print("[yellow]You can now run 'python run_synthesizer.py' to generate the final report.[/yellow]")
     except Exception as e:
-         console.print(f"\n[bold red]Error executing the graph: {e}[/bold red]")
+         console.print(f"\n[bold red]Error executing the research graph: {e}[/bold red]")
 
 if __name__ == "__main__":
     asyncio.run(main())
