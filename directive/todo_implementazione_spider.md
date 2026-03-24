@@ -45,3 +45,13 @@ Questa lista delinea i passaggi per evolvere ARSA in un agente di mining mirato.
 - [x] **6.2 Integrazione `pymupdf4llm`**: Aggiungere il parsing intelligente dei documenti PDF in Markdown.
 - [x] **6.3 Integrazione `youtube-transcript-api`**: Estrazione automatica dei sottotitoli dai video YouTube.
 - [x] **6.4 Refactoring Crawler & Spider**: Aggiornare i nodi di scraping per usare il nuovo gestore universale invece di chiamare direttamente Crawl4AI.
+
+---
+
+## 📅 FASE 7: Deep Synthesis & Knowledge Extraction
+*Obiettivo: Risolvere il problema degli output troppo sintetici e della perdita di dettagli tecnici (codice/ricette).*
+
+- [ ] **7.1 Schema Database Avanzato**: Creare una tabella `knowledge_chunks` per salvare pezzi di codice, ricette e snippet estratti dall'Analyst.
+- [ ] **7.2 Potenziamento Analyst (Extraction)**: Modificare il prompt di Llama 3.2 per estrarre non solo nomi di entità ma blocchi di contenuto tecnico/pratico rilevanti per il Goal.
+- [ ] **7.3 Synthesizer Iterativo (Chapter-by-Chapter)**: Riscrivere il nodo Synthesizer affinché esegua una chiamata a Gemini per ogni capitolo dell'outline, garantendo massima prolissità e dettaglio.
+- [ ] **7.4 Parametro `detail_level`**: Aggiungere il controllo nel `config.json` per regolare la profondità della sintesi.
