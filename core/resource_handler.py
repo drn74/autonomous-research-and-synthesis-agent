@@ -107,8 +107,8 @@ async def process_youtube(url: str) -> dict:
 
         transcript_data = await loop.run_in_executor(None, fetch_transcript)
         
-        # Formattazione base del transcript in testo leggibile
-        full_text = " ".join([item['text'] for item in transcript_data])
+        # Formattazione base del transcript in testo leggibile (supporta dict o oggetti)
+        full_text = " ".join([getattr(item, 'text', item.get('text', '')) if isinstance(item, dict) else item.text for item in transcript_data])
         
         md_content = f"# YouTube Video Transcript\n**Video ID:** {video_id}\n\n{full_text}"
         return {"success": True, "markdown": md_content}

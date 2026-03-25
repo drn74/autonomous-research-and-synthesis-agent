@@ -1,14 +1,14 @@
 {
-  "topic": "Commodore 64 Assembly Language: Game Development, Demoscene Techniques, and Hardware Optimization",
-  "goal": "Create a definitive technical manual for C64 assembly programming. The documentation must cover: 1. Core 6502/6510 instruction set and optimization. 2. Advanced graphics programming using the VIC-II (sprites, multiplexing, raster interrupts, and scrolling). 3. Audio synthesis and SID chip programming (ADSR, filters, and wavetables). 4. Demoscene-specific algorithms and math. 5. Practical source code examples and production best practices. Ensure high verbosity for RAG indexing.",
-  "language": "English",
+  "topic": "Ricette tradizionali e culinarie con il pesto alla genovese",
+  "goal": "Raccogliere le migliori ricette che utilizzano il pesto alla genovese come ingrediente principale, includendo piatti classici (trofie, trenette, minestrone) e varianti creative.",
+  "language": "Italian",
   "clean_on_startup": true,
-  "max_iterations": 5,
-  "saturation_threshold": 0.90,
+  "max_iterations": 2,
+  "saturation_threshold": 0.85,
   "site_spider": {
     "enabled": true,
-    "max_pages_per_domain": 100,
-    "max_depth": 5,
+    "max_pages_per_domain": 5,
+    "max_depth": 2,
     "request_delay_seconds": 1.2,
     "use_sitemap": true
   },
