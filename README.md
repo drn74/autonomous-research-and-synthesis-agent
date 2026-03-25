@@ -59,27 +59,10 @@ The system operates on a recursive State Graph composed of 6 main nodes, organiz
    ```
 
 2. **Configure your Research:**
-   Open the `config.json` file in the root directory and modify it with your desired Topic, Goal, and Language. You can also configure the automatic cleanup, token limits, and the Site Spider parameters here.
-   ```json
-   {
-     "topic": "The history of Artificial Intelligence",
-     "goal": "Write a comprehensive guide on the evolution of AI.",
-     "language": "English",
-     "clean_on_startup": true,
-     "max_iterations": 3,
-     "saturation_threshold": 0.85,
-     "site_spider": {
-       "enabled": true,
-       "max_pages_per_domain": 20,
-       "max_depth": 3,
-       "request_delay_seconds": 1.5,
-       "use_sitemap": true
-     },
-     "models": { ... },
-     "limits": { ... }
-   }
+   Open the `config.json` file in the root directory to set your defaults, or simply use **Command Line Arguments** to override them on the fly:
+   ```bash
+   python run_researcher.py --topic "Black Holes" --goal "Explain the event horizon" --lang "en"
    ```
-   *Note: If `clean_on_startup` is `true`, ARSA will automatically delete old downloads in `data/raw/` and clear the database for a fresh run.*
 
 3. **Run the Extraction Phase (Researcher):**
    This script runs the core agentic loop (Planner, Crawler, Analyst) to populate the local database and `data/raw/` directory. It can take a long time depending on the depth of the search.
@@ -88,16 +71,17 @@ The system operates on a recursive State Graph composed of 6 main nodes, organiz
    ```
 
 4. **Run the Synthesis Phase (Synthesizer):**
-   Once the extraction is complete (or if you want to regenerate the final document with different prompt settings without re-downloading), run the synthesizer. It generates the final Markdown dossier in the `output/` directory instantly.
+   Once the extraction is complete, run the synthesizer to aggregate all the raw code, recipes, and entities into a massive Markdown dossier. You can even pass a different goal to the synthesizer without re-running the researcher!
    ```bash
-   python run_synthesizer.py
+   python run_synthesizer.py --goal "Create a bullet-point summary"
    ```
-
-Watch your terminal as ARSA plans, crawls the web, detects dense knowledge bases, recursively spiders them, extracts data locally on your GPU, and finally synthesizes the research into a clean dataset!
 
 ## 📁 Output
 
-The final synthesized report will be saved in the `output/` directory as `FINAL_GUIDE_{topic}.md`, complete with YAML frontmatter detailing the sources analyzed and entities extracted. Raw scraped markdowns are kept in `data/raw/` for transparency or direct RAG indexing.
+The final synthesized report will be saved in the `output/` directory as `KNOWLEDGE_DOSSIER_{topic}.md`. It contains:
+- An **Executive Summary** written by Gemini.
+- A **Taxonomy** of all entities discovered.
+- The **Raw Knowledge Chunks** (code snippets, tables, detailed explanations) extracted by the local GPU, preserving 100% of the technical details for direct RAG indexing.
 
 ## 📜 License
 
