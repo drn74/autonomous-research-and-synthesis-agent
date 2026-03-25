@@ -1,5 +1,6 @@
 import asyncio
 import warnings
+import argparse
 from rich.panel import Panel
 
 # Suppress annoying dependency warnings from requests
@@ -10,13 +11,23 @@ from core.state import AgentState
 from nodes.synthesizer import synthesizer_node
 
 async def main():
+    parser = argparse.ArgumentParser(description="ARSA Synthesizer - Reporting Phase")
+    parser.add_argument("--topic", type=str, help="Override the main topic")
+    parser.add_argument("--goal", type=str, help="Override the goal")
+    parser.add_argument("--lang", type=str, help="Override the language")
+    args = parser.parse_args()
+
     console.print(Panel.fit("[bold green]Starting ARSA Synthesizer (Data Reporting)[/bold green]", border_style="green"))
     
-    # Load configuration from config.json
+    final_topic = args.topic if args.topic else APP_CONFIG.get("topic", "Default Topic")
+    final_goal = args.goal if args.goal else APP_CONFIG.get("goal", "Default Goal")
+    final_lang = args.lang if args.lang else APP_CONFIG.get("language", "English")
+
+    # Load configuration from config.json or arguments
     state = AgentState(
-        topic=APP_CONFIG.get("topic", "Default Topic"),
-        goal=APP_CONFIG.get("goal", "Default Goal"),
-        language=APP_CONFIG.get("language", "English"),
+        topic=final_topic,
+        goal=final_goal,
+        language=final_lang,
         mode="normal",
         dense_domains=[],
         queries=[],

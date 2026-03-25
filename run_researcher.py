@@ -2,6 +2,7 @@ import asyncio
 import os
 import shutil
 import warnings
+import argparse
 from pathlib import Path
 from rich.panel import Panel
 
@@ -14,6 +15,12 @@ from database.db_manager import clear_session
 from workflow import app
 
 async def main():
+    parser = argparse.ArgumentParser(description="ARSA Researcher - Data Gathering Phase")
+    parser.add_argument("--topic", type=str, help="The main topic of the research")
+    parser.add_argument("--goal", type=str, help="The ultimate goal of the research guide")
+    parser.add_argument("--lang", type=str, help="The target language for the research (e.g. English, Italian)")
+    args = parser.parse_args()
+
     console.print(Panel.fit("[bold green]Starting ARSA LangGraph Researcher (Data Gathering)[/bold green]", border_style="green"))
     
     # 1. Initialization and Cleanup
@@ -31,11 +38,15 @@ async def main():
                 except Exception as e:
                     console.print(f"[red]Could not delete {file.name}: {e}[/red]")
 
-    # 2. Load configuration from config.json
+    # 2. Load configuration: CLI args take precedence over config.json
+    final_topic = args.topic if args.topic else APP_CONFIG.get("topic", "Default Topic")
+    final_goal = args.goal if args.goal else APP_CONFIG.get("goal", "Default Goal")
+    final_lang = args.lang if args.lang else APP_CONFIG.get("language", "English")
+
     initial_state = AgentState(
-        topic=APP_CONFIG.get("topic", "Default Topic"),
-        goal=APP_CONFIG.get("goal", "Default Goal"),
-        language=APP_CONFIG.get("language", "English"),
+        topic=final_topic,
+        goal=final_goal,
+        language=final_lang,
         mode="normal",
         dense_domains=[],
         queries=[],
