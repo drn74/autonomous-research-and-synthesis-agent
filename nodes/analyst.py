@@ -122,7 +122,20 @@ async def analyst_node(state: AgentState) -> AgentState:
              continue
              
         filename = Path(local_path).name
-        console.print(f"[cyan]Deep Analysis in progress:[/cyan] {filename}")
+        
+        # Estrai l'URL reale dal frontmatter per log e DB più puliti
+        real_url = filename
+        try:
+            with open(local_path, 'r', encoding='utf-8') as f:
+                for _ in range(5): # Controlla solo le prime righe
+                    line = f.readline()
+                    if line.startswith("url: "):
+                        real_url = line.replace("url: ", "").strip()
+                        break
+        except:
+            pass
+            
+        console.print(f"[cyan]Deep Analysis in progress:[/cyan] {real_url}")
         
         result = await run_local_analysis(local_path, state['goal'], wsl_ip, state['language'])
         
@@ -141,12 +154,11 @@ async def analyst_node(state: AgentState) -> AgentState:
             new_entities_found.update(valid_entities)
             
         # Save Knowledge Chunks
-        source_url = "" # In a real scenario we'd fetch this from the DB
         for chunk in chunks:
             content = chunk.get("content")
             c_type = chunk.get("type", "technical")
             if content and len(content) > 20: # Avoid tiny snippets
-                save_knowledge_chunk(session_mock, filename, content, c_type)
+                save_knowledge_chunk(session_mock, real_url, content, c_type)
                 total_chunks_saved += 1
         
         console.print(Panel(
