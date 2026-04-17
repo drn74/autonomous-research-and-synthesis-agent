@@ -3,13 +3,15 @@ import os
 import shutil
 import warnings
 import argparse
+import subprocess
+import sys
 from pathlib import Path
+from datetime import datetime
 from rich.panel import Panel
 
 # Suppress annoying dependency warnings from requests
 warnings.filterwarnings("ignore", message="urllib3 .* or chardet .* doesn't match a supported version!")
 
-from datetime import datetime
 from core.config import console, APP_CONFIG
 from core.state import AgentState
 from database.db_manager import clear_session, initialize_db, save_session
@@ -20,6 +22,7 @@ async def main():
     parser.add_argument("--topic", type=str, help="The main topic of the research")
     parser.add_argument("--goal", type=str, help="The ultimate goal of the research guide")
     parser.add_argument("--lang", type=str, help="The target language for the research (e.g. English, Italian)")
+    parser.add_argument("--synthesize", action="store_true", help="Automatically run the synthesizer after research")
     args = parser.parse_args()
 
     console.print(Panel.fit("[bold green]Starting ARSA LangGraph Researcher (Data Gathering)[/bold green]", border_style="green"))
@@ -38,8 +41,6 @@ async def main():
     if APP_CONFIG.get("clean_on_startup", False):
         console.print(f"[dim]Cleaning session data for {session_id}...[/dim]")
         clear_session(session_id)
-        # Note: cleaning data/raw is risky if multiple sessions are active.
-        # In a real scenario we should move raw files to a session-specific folder.
 
     initial_state = AgentState(
         session_id=session_id,
@@ -52,22 +53,39 @@ async def main():
         entities=[],
         crawled_urls=[],
         iteration=0,
+        retry_count=0,
         saturation_score=0.0,
         notes_path=None,
         plan=None,
-        is_saturated=False
+        is_saturated=False,
+        critic_feedback=None
     )
 
+    console.print(f"[dim]Session ID: {session_id}[/dim]")
     console.print(f"[dim]Topic: {initial_state['topic']}[/dim]")
     console.print(f"[dim]Goal: {initial_state['goal']}[/dim]")
     console.print(f"[dim]Language: {initial_state['language']}[/dim]\n")
 
     try:
         final_state = await app.ainvoke(initial_state)
-        console.print("\n[bold green]Research phase completed successfully! All data is saved in SQLite and data/raw/.[/bold green]")
-        console.print("[yellow]You can now run 'python run_synthesizer.py' to generate the final report.[/yellow]")
+        console.print("\n[bold green]Research phase completed successfully! All data is saved in SQLite and ChromaDB.[/bold green]")
+        
+        if args.synthesize:
+            console.print("[bold yellow]Launching automatic RAG synthesis...[/bold yellow]")
+            # Launch synthesizer for this specific session
+            synth_args = [sys.executable, "run_synthesizer.py", "--session-id", session_id]
+            if args.topic: synth_args.extend(["--topic", args.topic])
+            if args.goal: synth_args.extend(["--goal", args.goal])
+            if args.lang: synth_args.extend(["--lang", args.lang])
+            
+            subprocess.run(synth_args)
+        else:
+            console.print(f"[yellow]You can now run: python run_synthesizer.py --session-id {session_id}[/yellow]")
+            
     except Exception as e:
          console.print(f"\n[bold red]Error executing the research graph: {e}[/bold red]")
+         import traceback
+         traceback.print_exc()
 
 if __name__ == "__main__":
     asyncio.run(main())

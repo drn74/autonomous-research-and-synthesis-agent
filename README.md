@@ -53,9 +53,9 @@ ARSA 3.0 operates on a sophisticated State Graph (LangGraph) with active feedbac
    ```
 
 3. **Run General Research:**
-   Configure `config.json` or use CLI arguments to explore the web:
+   Configure `config.json` or use CLI arguments to explore the web. Use `--synthesize` to automatically generate the dossier at the end:
    ```bash
-   python run_researcher.py --topic "Quantum Computing" --goal "Extract implementation details of Shor's algorithm"
+   python run_researcher.py --topic "Quantum Computing" --goal "Extract implementation details" --synthesize
    ```
 
 4. **Targeted Site Scanning (Deep Dive):**
