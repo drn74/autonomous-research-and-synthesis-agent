@@ -9,9 +9,10 @@ from rich.panel import Panel
 # Suppress annoying dependency warnings from requests
 warnings.filterwarnings("ignore", message="urllib3 .* or chardet .* doesn't match a supported version!")
 
+from datetime import datetime
 from core.config import console, APP_CONFIG
 from core.state import AgentState
-from database.db_manager import clear_session
+from database.db_manager import clear_session, initialize_db, save_session
 from workflow import app
 
 async def main():
@@ -23,27 +24,25 @@ async def main():
 
     console.print(Panel.fit("[bold green]Starting ARSA LangGraph Researcher (Data Gathering)[/bold green]", border_style="green"))
     
-    # 1. Initialization and Cleanup
-    session_id = "sess_001"
-    if APP_CONFIG.get("clean_on_startup", True):
-        console.print("[dim]Cleaning previous session data...[/dim]")
-        # Clear database
-        clear_session(session_id)
-        # Clear data/raw folder
-        raw_dir = Path("data/raw")
-        if raw_dir.exists():
-            for file in raw_dir.glob("*.md"):
-                try:
-                    file.unlink()
-                except Exception as e:
-                    console.print(f"[red]Could not delete {file.name}: {e}[/red]")
-
+    # 1. Initialization and DB setup
+    session_id = f"sess_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    initialize_db()
+    
     # 2. Load configuration: CLI args take precedence over config.json
     final_topic = args.topic if args.topic else APP_CONFIG.get("topic", "Default Topic")
     final_goal = args.goal if args.goal else APP_CONFIG.get("goal", "Default Goal")
     final_lang = args.lang if args.lang else APP_CONFIG.get("language", "English")
 
+    save_session(session_id, final_topic, final_goal)
+
+    if APP_CONFIG.get("clean_on_startup", False):
+        console.print(f"[dim]Cleaning session data for {session_id}...[/dim]")
+        clear_session(session_id)
+        # Note: cleaning data/raw is risky if multiple sessions are active.
+        # In a real scenario we should move raw files to a session-specific folder.
+
     initial_state = AgentState(
+        session_id=session_id,
         topic=final_topic,
         goal=final_goal,
         language=final_lang,

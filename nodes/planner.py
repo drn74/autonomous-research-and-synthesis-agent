@@ -7,8 +7,8 @@ from rich.panel import Panel
 async def planner_node(state: AgentState) -> AgentState:
     console.print(Panel(f"[bold cyan]Planning in progress...[/bold cyan]\nLanguage: {state['language'].upper()}\nTopic: {state['topic']}", border_style="cyan"))
     
-    session_mock = "sess_001"
-    db_entities = get_entities_from_db(session_mock)
+    session_id = state["session_id"]
+    db_entities = get_entities_from_db(session_id)
     all_entities = list(set(state.get("entities", []) + db_entities))
 
     llm = get_gemini_model(purpose="planner", temperature=0.2)
@@ -32,7 +32,13 @@ async def planner_node(state: AgentState) -> AgentState:
     1. Generate or update a 'plan_outline' that structures how to reach the Goal.
     2. Identify 3-5 precise search queries ('new_queries') to fill the current knowledge gaps. 
     3. Extract 'new_entities_to_track' that are mentioned in the plan or Goal but have not been searched.
-    4. Estimate saturation ('saturation_estimate' 0.0 - 1.0). 1.0 = Topic completely covered.
+    4. Estimate saturation ('saturation_estimate' 0.0 - 1.0):
+       - 0.0 = We just started, nothing is known yet.
+       - 0.3-0.5 = Core concepts identified but many gaps remain.
+       - 0.7-0.8 = Good coverage, only minor details missing.
+       - 0.9-1.0 = The Goal is fully addressable with current knowledge. No new queries would add significant value.
+       Be conservative: do NOT declare high saturation just because many entities exist.
+       Base your estimate on whether the GOAL can actually be achieved with current knowledge.
     """
 
     console.print("[dim]Invoking Gemini (Planner)...[/dim]")
@@ -50,7 +56,7 @@ async def planner_node(state: AgentState) -> AgentState:
         title="Planner Result", border_style="green"
     ))
 
-    save_entities_to_db(session_mock, result.new_entities_to_track)
+    save_entities_to_db(session_id, result.new_entities_to_track)
 
     new_iteration = state["iteration"] + 1
     
@@ -63,6 +69,7 @@ async def planner_node(state: AgentState) -> AgentState:
         console.print(f"[bold red]WARNING: Saturation reached (>={sat_thresh}) or Iteration limit exceeded (>{max_iter})![/bold red]")
 
     return {
+        "session_id": session_id,
         "topic": state["topic"],
         "goal": state["goal"],
         "language": state["language"],

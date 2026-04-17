@@ -38,6 +38,7 @@ parts/
 sdist/
 var/
 wheels/
+fix/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -51,3 +52,6 @@ share/python-wheels/
 Thumbs.db
 GEMINI.md
 SPIEGAZIONE.md
+
+.gemini/
+gha-creds-*.json

@@ -1,92 +1,134 @@
 import re
 import asyncio
+import json
 from pathlib import Path
 from datetime import datetime
 from core.state import AgentState
 from core.config import console, APP_CONFIG
 from core.llm import get_gemini_model
-from database.db_manager import get_entities_from_db, sanitize_filename, get_knowledge_chunks
+from database.db_manager import get_entities_from_db, sanitize_filename
+from database.vector_manager import VectorManager
 from rich.panel import Panel
+from langchain_core.messages import HumanMessage
 
 async def synthesizer_node(state: AgentState) -> AgentState:
-    console.print("\n[magenta]>>> SYNTHESIZER NODE: Aggregating and Structuring Raw Knowledge...[/magenta]")
+    console.print("\n[magenta]>>> SYNTHESIZER NODE: Generating RAG-based Research Dossier...[/magenta]")
     
-    session_mock = "sess_001"
+    session_id = state["session_id"]
+    vector_db = VectorManager()
     
-    # 1. Load Knowledge
-    entities = get_entities_from_db(session_mock)
-    chunks_data = get_knowledge_chunks(session_mock)
-    
-    # 2. Prepare the Executive Summary using Gemini
+    # 1. Load Entities
+    entities = get_entities_from_db(session_id)
+    if not entities:
+        console.print("[bold red]ERRORE: Nessuna entità trovata nel DB per questa sessione.[/bold red]")
+        return state
+
     llm = get_gemini_model(purpose="synthesizer", temperature=0.2)
     
-    # Raccogliamo i titoli/url dei chunk per dare contesto a Gemini senza passargli megabyte di codice
-    sources_summary = "\n".join(list(set([f"- {c['source_url']}" for c in chunks_data])))
+    # 2. Plan the Dossier Structure (Chapters)
+    console.print("[dim]Planning dossier structure based on identified entities...[/dim]")
+    entities_sample = ", ".join(sorted(entities)[:50])
     
-    prompt = f"""
-    Act as a Master Data Aggregator. Your task is to write a highly professional 'Executive Summary' for a research dossier.
+    plan_prompt = f"""
+    Based on the following technical entities extracted during research, propose a 4-5 chapter structure for a professional research dossier.
     
-    RESEARCH GOAL: {state['goal']}
-    TARGET LANGUAGE: {state['language']}
+    RESEARCH GOAL: "{state['goal']}"
+    TOPIC: "{state['topic']}"
+    ENTITIES: {entities_sample}
     
-    STATISTICS:
-    - Entities Extracted: {len(entities)}
-    - Knowledge Snippets Extracted: {len(chunks_data)}
-    - Sources Analyzed: 
-    {sources_summary[:2000]}
+    OUTPUT INSTRUCTIONS:
+    - Respond ONLY with a JSON list of strings (chapter titles).
+    - Example: ["Chapter 1: Title", "Chapter 2: Title", ...]
     
-    INSTRUCTIONS:
-    1. Write a 2-3 paragraph Executive Summary explaining what kind of data was collected and how it addresses the Research Goal.
-    2. Write a brief 'Taxonomy' or categorization of the topics covered.
-    3. Ensure the output is entirely in "{state['language']}".
-    4. Do NOT attempt to write the whole manual, just the summary and introduction.
+    CHAPTER PLAN:
     """
     
-    console.print("[dim]Invoking Gemini for Executive Summary...[/dim]")
     try:
-        response = await llm.ainvoke(prompt)
-        executive_summary = response.content.strip()
+        plan_response = await llm.ainvoke([HumanMessage(content=plan_prompt)])
+        chapters = json.loads(re.search(r'\[.*\]', plan_response.content, re.DOTALL).group(0))
     except Exception as e:
-        console.print(f"[red]Error generating summary: {e}[/red]")
-        executive_summary = "Error generating executive summary."
+        console.print(f"[yellow]Warning: Could not generate plan, using default structure. Error: {e}[/yellow]")
+        chapters = ["Technical Overview", "Detailed Procedures", "Key Components", "Summary of Findings"]
 
-    # 3. Build the Final Knowledge Dossier
-    console.print("[dim]Compiling the final Knowledge Dossier...[/dim]")
+    # 3. Generate Content for each Chapter using RAG
+    dossier_sections = []
+    total_sources = set()
     
-    final_book_content = f"# Executive Summary\n\n{executive_summary}\n\n"
-    final_book_content += "---\n\n# 1. Extracted Entities (Taxonomy)\n\n"
-    
-    # Group entities roughly alphabetically or just list them cleanly
-    valid_entities = sorted([e for e in entities if len(e) > 2])
-    final_book_content += ", ".join(valid_entities) + "\n\n"
-    
-    final_book_content += "---\n\n# 2. Raw Knowledge Chunks (Snippets, Code, Recipes)\n\n"
-    final_book_content += "*This section contains the pure, unmodified technical data extracted during the research.*\n\n"
-    
-    # Group chunks by source URL
-    chunks_by_source = {}
-    for c in chunks_data:
-        url = c['source_url']
-        if url not in chunks_by_source:
-            chunks_by_source[url] = []
-        chunks_by_source[url].append(c)
+    for i, chapter in enumerate(chapters):
+        console.print(f"  [cyan]Generating {chapter} (RAG query)...[/cyan]")
         
-    for url, chunks in chunks_by_source.items():
-        final_book_content += f"## Source: {url}\n\n"
-        for i, chunk in enumerate(chunks):
-            content = chunk['content'].strip()
-            # If it looks like code and doesn't have markdown blocks, wrap it
-            if chunk['content_type'] == 'code' and not content.startswith('```'):
-                content = f"```\n{content}\n```"
+        # Semantic search for the chapter
+        relevant_docs = vector_db.query(session_id, chapter, n_results=8)
+        
+        if not relevant_docs:
+            continue
             
-            final_book_content += f"### Snippet {i+1} ({chunk['content_type'].upper()})\n\n{content}\n\n"
+        # Prepare context for Gemini
+        context_blocks = []
+        for doc in relevant_docs:
+            source = doc.metadata.get("source_url", "Unknown Source")
+            total_sources.add(source)
+            context_blocks.append(f"SOURCE: {source}\nCONTENT: {doc.page_content}")
+            
+        context_text = "\n---\n".join(context_blocks)
+        
+        chapter_prompt = f"""
+        Write the content for the following chapter of a research dossier.
+        
+        CHAPTER TITLE: "{chapter}"
+        RESEARCH GOAL: "{state['goal']}"
+        TARGET LANGUAGE: "{state['language']}"
+        
+        CONTEXT DATA (from research):
+        {context_text[:15000]}
+        
+        INSTRUCTIONS:
+        1. Synthesize the context data into a professional and detailed report for this chapter.
+        2. Use CITATIONS: whenever you use information from a source, mention the source URL in brackets, e.g., [https://example.com].
+        3. Be technical and precise. Preserving code snippets if they are relevant to this chapter.
+        4. Write the entire content in "{state['language']}".
+        5. Do NOT use introductory filler like "Here is the content for...".
+        
+        CHAPTER CONTENT:
+        """
+        
+        try:
+            chapter_response = await llm.ainvoke([HumanMessage(content=chapter_prompt)])
+            dossier_sections.append(f"# {chapter}\n\n{chapter_response.content.strip()}")
+        except Exception as e:
+            console.print(f"[red]Error generating chapter {chapter}: {e}[/red]")
 
-    # 4. Output Finalization
+    # 4. Generate Executive Summary
+    summary_prompt = f"""
+    Write a professional Executive Summary for the following research dossier.
+    
+    TOPIC: "{state['topic']}"
+    GOAL: "{state['goal']}"
+    LANGUAGE: "{state['language']}"
+    CHAPTERS COVERED: {", ".join(chapters)}
+    
+    INSTRUCTIONS:
+    - Focus on the main takeaways and how the goal was achieved.
+    - Write 2-3 paragraphs.
+    - Respond in "{state['language']}".
+    """
+    
+    try:
+        summary_response = await llm.ainvoke([HumanMessage(content=summary_prompt)])
+        executive_summary = summary_response.content.strip()
+    except:
+        executive_summary = "Dossier generated using RAG synthesis."
+
+    # 5. Final Compilation
+    full_content = f"# Executive Summary\n\n{executive_summary}\n\n"
+    full_content += "\n\n---\n\n".join(dossier_sections)
+    
+    # 6. Output Finalization
     output_dir = Path("output")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     slug_topic = sanitize_filename(state['topic'].lower()[:50])
-    final_filepath = output_dir / f"KNOWLEDGE_DOSSIER_{slug_topic}.md"
+    final_filepath = output_dir / f"RAG_DOSSIER_{slug_topic}.md"
     
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     frontmatter = f"""---
@@ -94,23 +136,22 @@ title: "{state['topic']}"
 goal: "{state['goal']}"
 language: "{state['language']}"
 date_generated: "{current_date}"
-knowledge_chunks_extracted: {len(chunks_data)}
-entities_extracted: {len(entities)}
-type: "Raw Knowledge Dossier"
+type: "RAG-Synthesized Knowledge Dossier"
+sources_analyzed: {len(total_sources)}
+chapters_count: {len(chapters)}
 ---
 
 """
     try:
         with open(final_filepath, "w", encoding="utf-8") as f:
-            f.write(frontmatter + final_book_content)
+            f.write(frontmatter + full_content)
             
         console.print(Panel(
-            f"[bold green]🎉 KNOWLEDGE DOSSIER COMPLETED! 🎉[/bold green]\n\n"
-            f"All raw data and snippets have been safely aggregated.\n"
+            f"[bold green]🚀 RAG DOSSIER COMPLETED! 🚀[/bold green]\n\n"
+            f"Synthesized from {len(total_sources)} sources using vector search.\n"
             f"[yellow]File Saved in:[/yellow] {final_filepath}\n"
-            f"[cyan]Snippets preserved:[/cyan] {len(chunks_data)}\n"
-            f"[magenta]File size:[/magenta] {final_filepath.stat().st_size / 1024:.2f} KB",
-            title="ARSA Data Aggregator", border_style="green"
+            f"[cyan]Chapters generated:[/cyan] {len(dossier_sections)}",
+            title="ARSA RAG Synthesizer", border_style="green"
         ))
     except Exception as e:
         console.print(f"[bold red]Error saving file:[/bold red] {e}")

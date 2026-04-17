@@ -29,6 +29,7 @@ except Exception as e:
         "language": "English",
         "max_iterations": 3,
         "saturation_threshold": 0.85,
+        "blacklist": [],
         "models": {
             "planner": "gemini-2.5-flash",
             "analyst": "llama3.2:3b",

@@ -3,10 +3,23 @@ import aiohttp
 import aiofiles
 import tempfile
 import pymupdf4llm
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from urllib.parse import urlparse, parse_qs
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from core.config import console
 from youtube_transcript_api import YouTubeTranscriptApi
+
+def split_text_into_chunks(text: str, chunk_size: int = 4000, chunk_overlap: int = 400) -> list[str]:
+    """
+    Splits long text into manageable chunks using RecursiveCharacterTextSplitter.
+    Optimized for LLM analysis and Vector DB insertion.
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", ". ", " ", ""]
+    )
+    return text_splitter.split_text(text)
 
 async def is_pdf(url: str) -> bool:
     """Rileva se l'URL punta a un file PDF."""
@@ -117,17 +130,123 @@ async def process_youtube(url: str) -> dict:
         return {"success": False, "error": f"Impossibile estrarre transcript (forse non disponibile o video privato): {str(e)}"}
 
 async def process_html(url: str, crawler: AsyncWebCrawler, run_config: CrawlerRunConfig) -> dict:
-    """Usa Crawl4AI per estrarre Markdown dall'HTML."""
+    """Usa Crawl4AI per estrarre Markdown dall'HTML con un fallback aiohttp se fallisce."""
     try:
-        result = await crawler.arun(url=url, config=run_config)
-        if result.success:
-            content = result.markdown if hasattr(result, 'markdown') else str(result.html)
-            raw_html = str(result.html) if hasattr(result, 'html') else ""
-            return {"success": True, "markdown": content, "html": raw_html}
-        else:
-            return {"success": False, "error": result.error_message}
+        # Tenta con Crawl4AI (Playwright) - Timeout di 30s per evitare blocchi infiniti
+        import asyncio
+        try:
+            result = await asyncio.wait_for(crawler.arun(url=url, config=run_config), timeout=45)
+            if result.success:
+                content = result.markdown if hasattr(result, 'markdown') else str(result.html)
+                raw_html = str(result.html) if hasattr(result, 'html') else ""
+                return {"success": True, "markdown": content, "html": raw_html}
+        except asyncio.TimeoutError:
+            console.print(f"[yellow]Crawl4AI timeout su {url}, provo fallback aiohttp...[/yellow]")
+            
+        # Fallback aiohttp + BeautifulSoup
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=20) as response:
+                if response.status == 200:
+                    html_text = await response.text()
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(html_text, 'html.parser')
+                    # Rimuovi script e stili
+                    for script in soup(["script", "style"]):
+                        script.decompose()
+                    
+                    # Estrai il corpo o il contenuto principale (per Wiki)
+                    content_div = soup.find('div', id='mw-content-text') or soup.find('body')
+                    text = content_div.get_text(separator='\n') if content_div else soup.get_text()
+                    
+                    # Pulizia minima
+                    lines = (line.strip() for line in text.splitlines())
+                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                    text_clean = '\n'.join(chunk for chunk in chunks if chunk)
+                    
+                    return {"success": True, "markdown": text_clean, "html": html_text}
+                else:
+                    return {"success": False, "error": f"HTTP {response.status}"}
+                    
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": f"Errore crawling: {str(e)}"}
+
+async def is_xml(url: str) -> bool:
+    """Rileva se l'URL punta a un file XML/RSS."""
+    parsed_url = urlparse(url.lower())
+    if parsed_url.path.endswith('.xml') or parsed_url.path.endswith('.rss'):
+        return True
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(url, allow_redirects=True, timeout=5) as response:
+                content_type = response.headers.get('Content-Type', '').lower()
+                if 'xml' in content_type or 'rss' in content_type or 'atom' in content_type:
+                    return True
+    except Exception:
+        pass
+    
+    return False
+
+async def process_xml(url: str) -> dict:
+    """Scarica un XML/RSS e ne estrae il testo rilevante in Markdown."""
+    console.print(f"[dim]ResourceHandler: Rilevato XML/RSS, inizio parsing nativo...[/dim]")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=30) as response:
+                if response.status != 200:
+                    return {"success": False, "error": f"HTTP {response.status}"}
+                content = await response.text()
+                
+        import xml.etree.ElementTree as ET
+        import re
+        # Rimuove il namespace predefinito per semplificare la ricerca
+        content_no_ns = re.sub(r'\sxmlns="[^"]+"', '', content, count=1)
+        
+        try:
+            root = ET.fromstring(content_no_ns)
+        except ET.ParseError:
+            # Fallback a stringa originale se re.sub ha rotto qualcosa
+            try:
+                root = ET.fromstring(content)
+            except ET.ParseError as e:
+                return {"success": False, "error": f"Errore parsing XML: {str(e)}"}
+            
+        md_lines = [f"# Feed XML/RSS: {url}\n"]
+        
+        # Estrai titolo del feed se presente
+        channel_title = root.findtext('.//title') or root.findtext('{*}title')
+        if channel_title:
+            md_lines.append(f"## {channel_title.strip()}\n")
+            
+        # Cerca i classici tag degli elementi del feed (RSS=item, Atom=entry)
+        items = root.findall('.//item') or root.findall('.//{*}item')
+        if not items:
+            items = root.findall('.//entry') or root.findall('.//{*}entry')
+            
+        for item in items:
+            title = item.findtext('title') or item.findtext('{*}title')
+            desc = item.findtext('description') or item.findtext('{*}description') or item.findtext('summary') or item.findtext('{*}summary') or item.findtext('content') or item.findtext('{*}content')
+            if title:
+                md_lines.append(f"### {title.strip()}")
+            if desc:
+                # Semplice pulizia dai tag HTML interni
+                desc_clean = re.sub(r'<[^>]+>', ' ', desc).strip()
+                if desc_clean:
+                    md_lines.append(f"{desc_clean}\n")
+        
+        # Se non abbiamo trovato nulla, tentiamo di estrarre tutto il testo
+        if not items:
+            for elem in root.iter():
+                if elem.text and elem.text.strip():
+                    text = elem.text.strip()
+                    if len(text) > 20 and not text.startswith('http'):
+                        md_lines.append(text)
+                        
+        md_content = "\n".join(md_lines)
+        return {"success": True, "markdown": md_content}
+        
+    except Exception as e:
+        return {"success": False, "error": f"Errore processazione XML: {str(e)}"}
 
 async def extract_markdown_from_url(url: str, crawler: AsyncWebCrawler, run_config: CrawlerRunConfig) -> dict:
     """Gestore universale: determina il tipo di risorsa e ne estrae il Markdown."""
@@ -136,6 +255,9 @@ async def extract_markdown_from_url(url: str, crawler: AsyncWebCrawler, run_conf
         
     if await is_pdf(url):
         return await process_pdf(url)
+        
+    if await is_xml(url):
+        return await process_xml(url)
     
     # Default ad HTML (Crawl4AI)
     return await process_html(url, crawler, run_config)

@@ -12,6 +12,7 @@ async def web_search(queries: List[str]) -> List[str]:
     
     urls = []
     max_results = APP_CONFIG.get("limits", {}).get("max_search_results_per_query", 3)
+    blacklist = APP_CONFIG.get("blacklist", [])
     
     async with aiohttp.ClientSession() as session:
         for query in queries:
@@ -28,6 +29,10 @@ async def web_search(queries: List[str]) -> List[str]:
                         for result in organic_results:
                             link = result.get("link")
                             if link:
+                                # Filtering logic for blacklist
+                                if any(domain.lower() in link.lower() for domain in blacklist):
+                                    console.print(f"[yellow]Skipping blacklisted URL: {link}[/yellow]")
+                                    continue
                                 urls.append(link)
                     else:
                         console.print(f"[red]Serper API Error: {response.status}[/red]")

@@ -2,6 +2,7 @@ from typing import List, TypedDict, Optional
 from pydantic import BaseModel, Field
 
 class AgentState(TypedDict):
+    session_id: str
     topic: str
     goal: str
     language: str
@@ -11,10 +12,12 @@ class AgentState(TypedDict):
     entities: List[str]
     crawled_urls: List[str] # New field for transient URLs
     iteration: int
+    retry_count: int # New: tracks retries for the current iteration
     saturation_score: float
     notes_path: Optional[str]
     plan: Optional[str]
     is_saturated: bool
+    critic_feedback: Optional[str] # New: suggestions from Critic to Analyst
 
 class PlannerOutput(BaseModel):
     plan_outline: str = Field(description="A textual draft of the work plan or chapters of the final document.")
