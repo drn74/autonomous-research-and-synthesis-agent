@@ -55,3 +55,4 @@ SPIEGAZIONE.md
 
 .gemini/
 gha-creds-*.json
+.gemini-kit/
