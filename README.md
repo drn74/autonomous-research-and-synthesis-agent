@@ -52,13 +52,20 @@ ARSA 3.0 operates on a sophisticated State Graph (LangGraph) with active feedbac
    SERPER_API_KEY="your_key_here"
    ```
 
-3. **Run Research:**
-   Configure `config.json` or use CLI arguments:
+3. **Run General Research:**
+   Configure `config.json` or use CLI arguments to explore the web:
    ```bash
    python run_researcher.py --topic "Quantum Computing" --goal "Extract implementation details of Shor's algorithm"
    ```
 
-4. **Synthesize Dossier:**
+4. **Targeted Site Scanning (Deep Dive):**
+   Use the specialized scanner to ingest an entire website (e.g., a documentation wiki) skipping the planning phase:
+   ```bash
+   python run_site_scanner.py --url "https://docs.example.com" --max-pages 100 --synthesize
+   ```
+
+5. **Synthesize Dossier:**
+   If you didn't use the `--synthesize` flag, run the manual synthesis:
    ```bash
    python run_synthesizer.py
    ```
